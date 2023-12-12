@@ -8,6 +8,7 @@ Hardware-Efficient Training](https://arxiv.org/pdf/2312.06635.pdf)
 
 * torch (tested on 2.1.1+cu121)
 * [triton nightly-release](https://github.com/openai/triton)
+* einops
 
 ## Usage
 
