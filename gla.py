@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from kernels.intra_chunk_contribution.fn import intra_chunk_onc
 from kernels.inter_chunk_contribution.fn import inter_chunk_onc
 import torch.nn as nn 
+from fla.ops.triton.gla import fused_chunk_gla
+
 
 # token mixing layer. ~4D^2. 
 class GatedLinearAttention(nn.Module):
@@ -94,7 +96,7 @@ class GatedLinearAttention(nn.Module):
         else:
             v_gate = None 
         g = self.g_proj(x)
-        output = self.gated_linear_attention(q, k, v, k_gate, v_gate, num_head=self.num_heads, chunk_size=128)
+        output = self.gated_linear_attention(q, k, v, k_gate, v_gate, num_head=self.num_heads)
         output = self.group_norm(output)
         output = rearrange(output, 'b h n c d -> b (n c) (h d)')
 
@@ -115,10 +117,17 @@ class GatedLinearAttention(nn.Module):
         if gv is not None:
             gv = rearrange(gv, 'b (n c) (h d) -> b h n c d', h = num_head, c = chunk_size).contiguous()
 
-        gk, gv, o1 = inter_chunk_onc(q, k, v, gk, gv, normalizer_gk, normalizer_gv)        
-        o2 = intra_chunk_onc(q, k, v, gk, gv)
-        o = (o1 + o2)
-        return o
+        # call faster implementation
+        if gk is not None and gv is None:
+            gk = F.logsigmoid(gk) / normalizer_gk
+            o = fused_chunk_gla(q, k, v, gk)
+            return o
+        # call the general implementation
+        else:
+            gk, gv, o1 = inter_chunk_onc(q, k, v, gk, gv, normalizer_gk, normalizer_gv)        
+            o2 = intra_chunk_onc(q, k, v, gk, gv)
+            o = (o1 + o2)
+            return o
 
 if __name__ == "__main__":
     BATCH, H, N_CTX, D_MODEL = 32, 4, 2048, 1024
@@ -129,4 +138,7 @@ if __name__ == "__main__":
      device="cuda", requires_grad=True)
     
     y = GLA(x)
+    print(y.shape)
     y.sum().backward()
+    print(x.grad.shape)
+    

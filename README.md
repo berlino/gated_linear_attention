@@ -2,7 +2,7 @@
 
 
 Standalone module of Gated Linear Attention (GLA) from [Gated Linear Attention Transformers with
-Hardware-Efficient Training](https://arxiv.org/pdf/2312.06635.pdf) 
+Hardware-Efficient Training](https://arxiv.org/pdf/2312.06635.pdf). See [flash-linear-attention](https://github.com/sustcsonglin/flash-linear-attention/tree/main) for hardware-efficient implementations of other linear attention models. 
 
 ## Setup
 
