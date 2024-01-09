@@ -117,17 +117,17 @@ class GatedLinearAttention(nn.Module):
         if gv is not None:
             gv = rearrange(gv, 'b (n c) (h d) -> b h n c d', h = num_head, c = chunk_size).contiguous()
 
-        # call faster implementation
-        if gk is not None and gv is None:
-            gk = F.logsigmoid(gk) / normalizer_gk
-            o = fused_chunk_gla(q, k, v, gk)
-            return o
-        # call the general implementation
-        else:
-            gk, gv, o1 = inter_chunk_onc(q, k, v, gk, gv, normalizer_gk, normalizer_gv)        
-            o2 = intra_chunk_onc(q, k, v, gk, gv)
-            o = (o1 + o2)
-            return o
+        # # call faster implementation
+        # if gk is not None and gv is None:
+        #     gk = F.logsigmoid(gk) / normalizer_gk
+        #     o = fused_chunk_gla(q, k, v, gk)
+        #     return o
+        # # call the general implementation
+        # else:
+        gk, gv, o1 = inter_chunk_onc(q, k, v, gk, gv, normalizer_gk, normalizer_gv)        
+        o2 = intra_chunk_onc(q, k, v, gk, gv)
+        o = (o1 + o2)
+        return o
 
 if __name__ == "__main__":
     BATCH, H, N_CTX, D_MODEL = 32, 4, 2048, 1024
