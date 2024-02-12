@@ -4,33 +4,21 @@
 Standalone module of Gated Linear Attention (GLA) from [Gated Linear Attention Transformers with
 Hardware-Efficient Training](https://arxiv.org/pdf/2312.06635.pdf). 
 
-02/04/23: Please refer to [link](https://github.com/sustcsonglin/flash-linear-attention/blob/main/fla/layers/gla.py) for numerially more stable implementation.
-
-See [flash-linear-attention](https://github.com/sustcsonglin/flash-linear-attention/tree/main) for hardware-efficient implementations of other linear attention models. 
-
-## Setup
-
-* torch (tested on 2.1.1+cu121)
-* [triton nightly-release](https://github.com/openai/triton)
-* einops
+```
+pip install -U git+https://github.com/sustcsonglin/flash-linear-attention
+```
 
 ## Usage
 
+Load the checkpoint from huggingface.
 
 ```python
-from gla import GatedLinearAttention
-
-d_model = 1024
-num_head = 4
-use_gk = True # alpha
-use_gv = False # beta
-device = "cuda:0"
-
-gla_layer = GatedLinearAttention(d_model, num_head, use_gk, use_gv).to(device)
-
-bsz, seq_len, d_model = 32, 2048, 1024
-x = torch.randn(bsz, seq_len, d_model).to(device)
-y = gla_layer(x)
-
-asssert y.shape == x.shape
+from gla_model import GLAForCausalLM
+model = GLAForCausalLM.from_pretrained("bailin28/gla-1B-100B")
+vocab_size = model.config.vocab_size
+bsz, seq_len = 32, 2048
+x = torch.randint(high=vocab_size, size=(bsz, seq_len))
+model_output = model(x)
+loss = model_output.loss
+logits = model_output.logits
 ```
